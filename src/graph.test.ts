@@ -74,6 +74,17 @@ test("fan-out runs N stubs then halts", () => {
   assert.deepEqual(output, ["weather:sf", "weather:la"]);
 });
 
+test("uneven fan-out keeps earlier leaves and later-wave output", () => {
+  const source = defineNode("source", (q: string) => q);
+  const leaf = defineNode("leaf", (_q: string) => "leaf");
+  const mid = defineNode("mid", (q: string) => q);
+  const chain = defineNode("chain", (_q: string) => "chain");
+  const fanned = connect(source, [leaf, mid]);
+  const { output, trace } = runGraph(connect(mid, chain, { graph: fanned }), "in");
+  assert.deepEqual(trace, ["source", "leaf", "mid", "chain"]);
+  assert.deepEqual(output, ["leaf", "chain"]);
+});
+
 test("assertFanOutAndHalt fans 1 to N then terminates", () => {
   const { output, trace } = assertFanOutAndHalt(3);
   assert.deepEqual(trace, ["prompt", "agent-0", "agent-1", "agent-2"]);

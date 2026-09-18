@@ -12,6 +12,8 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "exactOptionalPropertyTypes": true,
+    "allowImportingTsExtensions": true,
+    "types": ["node"],
     "skipLibCheck": true,
     "verbatimModuleSyntax": true,
     "isolatedModules": true

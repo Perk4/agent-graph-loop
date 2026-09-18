@@ -77,11 +77,10 @@ export function runGraph(graph: Graph, input: unknown): RunResult {
     { id: start.id, value: input },
   ];
   const trace: string[] = [];
-  let lastOutputs: unknown[] = [];
+  const terminals: unknown[] = [];
 
   while (wave.length > 0) {
     const next: { id: string; value: unknown }[] = [];
-    lastOutputs = [];
     for (const item of wave) {
       const node = graph.nodes[item.id];
       if (node === undefined) {
@@ -89,11 +88,11 @@ export function runGraph(graph: Graph, input: unknown): RunResult {
       }
       const output = node.run(item.value);
       trace.push(node.id);
-      lastOutputs.push(output);
       visits.set(node.id, (visits.get(node.id) ?? 0) + 1);
       if (trace.length > LOOP_CEILING) {
         throw new Error("halt guard never halted");
       }
+      let routed = false;
       for (const edge of graph.edges) {
         if (edge.from !== node.id) {
           continue;
@@ -106,12 +105,16 @@ export function runGraph(graph: Graph, input: unknown): RunResult {
           throw new Error("cycle without halt guard");
         }
         next.push({ id: edge.to, value: output });
+        routed = true;
+      }
+      if (!routed) {
+        terminals.push(output);
       }
     }
     wave = next;
   }
 
-  const output = lastOutputs.length === 1 ? lastOutputs[0] : lastOutputs;
+  const output = terminals.length === 1 ? terminals[0] : terminals;
   return Object.freeze({ output, trace: Object.freeze(trace) });
 }
 
@@ -169,11 +172,11 @@ function blankGraph(entry: string): Graph {
   return freezeGraph({ entry, nodes: {}, edges: [] });
 }
 
-function addEdges(
+function addEdges<T>(
   graph: Graph,
   from: StoredNode,
   targets: readonly StoredNode[],
-  opts: EdgeSpec<unknown> | undefined,
+  opts: EdgeSpec<T> | undefined,
 ): Graph {
   const nodes: Record<string, StoredNode> = { ...graph.nodes };
   putNode(nodes, from);
